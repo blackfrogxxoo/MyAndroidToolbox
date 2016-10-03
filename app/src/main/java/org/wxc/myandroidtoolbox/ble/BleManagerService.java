@@ -96,6 +96,14 @@ public class BleManagerService extends Service{
         return mBinder;
     }
 
+    @Override
+    public void onDestroy() {
+        mQueueDataHolder.close();
+        mDeinterleaverCache.close();
+        mIsServiceDestroyed.set(true);
+        super.onDestroy();
+    }
+
     private void onNewEcgReceived(EcgPacket model) throws RemoteException {
         mDeinterleaverCache.setMeasurementsAndSequenceID(model.getECGmeasurements(), model.getSequenceID());
 
