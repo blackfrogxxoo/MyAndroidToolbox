@@ -1,9 +1,9 @@
 package org.wxc.myandroidtoolbox;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
-import android.support.design.widget.Snackbar;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
@@ -14,6 +14,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 
+import org.wxc.myandroidtoolbox.ipc.ModelManagerActivity;
 import org.wxc.myandroidtoolbox.ipc.ModelParcelable;
 
 public class MainActivity extends AppCompatActivity
@@ -31,8 +32,10 @@ public class MainActivity extends AppCompatActivity
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+//                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
+//                        .setAction("Action", null).show();
+
+                startActivity(new Intent(getApplicationContext(), ModelManagerActivity.class));
             }
         });
 
