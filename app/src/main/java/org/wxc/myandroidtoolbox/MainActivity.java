@@ -2,19 +2,23 @@ package org.wxc.myandroidtoolbox;
 
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
-import android.view.View;
 import android.support.design.widget.NavigationView;
+import android.support.design.widget.Snackbar;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+
+import org.wxc.myandroidtoolbox.ipc.ModelParcelable;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
+    private static final String TAG = "MainActivity";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,6 +44,17 @@ public class MainActivity extends AppCompatActivity
 
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
+
+        testModelParcelable();
+    }
+
+    private void testModelParcelable() {
+        ModelParcelable model = new ModelParcelable(1, "Test Tag", true, new ModelParcelable.Book());
+        Bundle bundle = new Bundle();
+        bundle.putParcelable("model", model);
+
+        ModelParcelable newModel = bundle.getParcelable("model");
+        Log.i(TAG, "testModelParcelable: " + newModel);
     }
 
     @Override
