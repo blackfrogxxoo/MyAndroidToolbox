@@ -22,8 +22,12 @@
         <service
             android:name=".ipc.ModelManagerService"
             android:process=":remote" />
+        <service
+            android:name=".ble.BleManagerService"
+            android:process=":remote" />
 
-        <activity android:name=".ipc.ModelManagerActivity"></activity>
+        <activity android:name=".ipc.ModelManagerActivity" />
+        <activity android:name=".ble.BleActivity"/>
     </application>
 
 </manifest>

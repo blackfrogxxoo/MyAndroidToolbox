@@ -14,7 +14,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 
-import org.wxc.myandroidtoolbox.ipc.ModelManagerActivity;
+import org.wxc.myandroidtoolbox.ble.BleActivity;
 import org.wxc.myandroidtoolbox.ipc.ModelParcelable;
 
 public class MainActivity extends AppCompatActivity
@@ -35,7 +35,7 @@ public class MainActivity extends AppCompatActivity
 //                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
 //                        .setAction("Action", null).show();
 
-                startActivity(new Intent(getApplicationContext(), ModelManagerActivity.class));
+                startActivity(new Intent(getApplicationContext(), BleActivity.class));
             }
         });
 
