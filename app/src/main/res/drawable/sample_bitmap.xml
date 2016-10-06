@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<bitmap xmlns:android="http://schemas.android.com/apk/res/android"
+    android:src="@mipmap/ic_launcher"
+    android:antialias="true"
+    android:dither="true"
+    android:filter="true"
+    android:gravity="top"
+    android:mipMap="false"
+    android:tileMode="disabled">
+    <!-- src:       required -->
+    <!-- antialias: 抗锯齿，一般应该为true -->
+    <!-- dither:    开启抖动效果，让高质量图片在质量屏幕上保持较好的显示效果，一般应该为true -->
+    <!-- dither:    开启过滤效果，让图片在尺寸伸缩时，保持较好的显示效果，一般应该为true -->
+    <!-- gravity:   位置，top/bottom/center_vertical/... -->
+    <!-- mipMap:    纹理映射， api>=18，默认为false -->
+    <!-- tileMode:  平铺模式，disabled/clamp/repeat/mirror -->
+</bitmap>
