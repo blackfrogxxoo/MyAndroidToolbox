@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android"> <!-- 形状：rectangle/oval/line/ring -->
+    <!-- shape为ling或ring时必须指定stroke -->
+    <!-- dashWidth与dashGap分别指虚线的实线和空隙宽度 -->
+    <item android:drawable="@color/colorPrimary"/>
+    <item android:drawable="@drawable/sample_bitmap" />
+    <item android:drawable="@drawable/sample_shape_rectangle"
+        android:top="@dimen/margin_large">
+    </item>
+    <item android:top="@dimen/activity_horizontal_margin"
+        android:bottom="@dimen/activity_horizontal_margin"
+        android:right="@dimen/activity_horizontal_margin"
+        android:left="@dimen/activity_horizontal_margin">
+        <shape android:shape="ring"
+            android:innerRadius="4dp"
+            android:thickness="2dp"
+            android:innerRadiusRatio="9"
+            android:thicknessRatio="3"
+            android:useLevel="false">
+            <solid android:color="@color/colorPrimary" />
+        </shape>
+    </item>
+</layer-list>

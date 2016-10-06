@@ -36,4 +36,8 @@
             android:layout_height="wrap_content"
             android:text="Hello World!" />
     </LinearLayout>
+    <View
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:background="@drawable/sample_layer" />
 </LinearLayout>
