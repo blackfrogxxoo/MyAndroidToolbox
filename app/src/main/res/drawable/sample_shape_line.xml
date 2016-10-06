@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="line"> <!-- 形状：rectangle/oval/line/ring -->
+    <!-- shape为ling或ring时必须指定stroke -->
+    <!-- dashWidth与dashGap分别指虚线的实线和空隙宽度 -->
+    <stroke
+        android:width="3dp"
+        android:color="@color/colorAccent"
+        android:dashWidth="10dp"
+        android:dashGap="4dp"/>
+
+</shape>
