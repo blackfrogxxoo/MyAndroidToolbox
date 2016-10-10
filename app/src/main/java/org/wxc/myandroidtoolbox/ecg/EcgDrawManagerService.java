@@ -31,7 +31,7 @@ public class EcgDrawManagerService extends Service{
     private Binder mBinder = new IEcgDrawManager.Stub() {
 
         @Override
-        public void startOrStop(boolean start) throws RemoteException {
+        public void setRunning(boolean start) throws RemoteException {
             if(start) {
                 new Thread(new ServiceWorker()).start();
             } else {

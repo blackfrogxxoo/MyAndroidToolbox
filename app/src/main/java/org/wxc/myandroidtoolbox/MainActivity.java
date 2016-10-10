@@ -80,7 +80,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void testBinderPool(View view) {
         try {
-            ecgManager.startOrStop(true);
+            ecgManager.setRunning(true);
         } catch (RemoteException e) {
             e.printStackTrace();
         }
@@ -122,6 +122,11 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
+        try {
+            ecgManager.setRunning(false);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
         super.onDestroy();
     }
 

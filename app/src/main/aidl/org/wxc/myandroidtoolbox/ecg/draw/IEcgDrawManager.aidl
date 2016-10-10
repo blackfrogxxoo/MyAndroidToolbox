@@ -10,7 +10,7 @@ interface IEcgDrawManager {
      * Demonstrates some basic types that you can use as parameters
      * and return values in AIDL.
      */
-    void startOrStop(boolean ecg);
+    void setRunning(boolean ecg);
     void registerListener(IOnEcgDrawListener listener);
     void unregisterListener(IOnEcgDrawListener listener);
 }

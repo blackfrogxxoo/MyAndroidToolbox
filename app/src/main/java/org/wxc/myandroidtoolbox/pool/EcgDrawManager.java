@@ -103,7 +103,7 @@ public class EcgDrawManager extends IEcgDrawManager.Stub {
     }
 
     @Override
-    public void startOrStop(boolean start) throws RemoteException {
+    public void setRunning(boolean start) throws RemoteException {
         if(start) {
             init();
         } else {
