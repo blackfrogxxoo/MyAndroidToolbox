@@ -40,4 +40,15 @@
         android:layout_width="100dp"
         android:layout_height="100dp"
         android:background="@drawable/sample_layer" />
+    <Button
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Test Binder Pool"
+        android:onClick="testBinderPool"/>
+
+
+    <org.wxc.myandroidtoolbox.ecg.cache.EcgScanView
+        android:id="@+id/ecgScanView"
+        android:layout_width="match_parent"
+        android:layout_height="200dp" />
 </LinearLayout>

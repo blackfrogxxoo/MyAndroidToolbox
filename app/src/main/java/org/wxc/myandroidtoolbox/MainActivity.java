@@ -1,54 +1,97 @@
 package org.wxc.myandroidtoolbox;
 
-import android.content.Intent;
 import android.os.Bundle;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.NavigationView;
-import android.support.v4.view.GravityCompat;
-import android.support.v4.widget.DrawerLayout;
-import android.support.v7.app.ActionBarDrawerToggle;
+import android.os.IBinder;
+import android.os.RemoteException;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
 import android.util.Log;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
 
-import org.wxc.myandroidtoolbox.ble.BleActivity;
-import org.wxc.myandroidtoolbox.ipc.ModelParcelable;
+import org.wxc.myandroidtoolbox.aidl.IModelManager;
+import org.wxc.myandroidtoolbox.aidl.IOnNewModelListener;
+import org.wxc.myandroidtoolbox.aidl.Model;
+import org.wxc.myandroidtoolbox.ecg.cache.EcgScanView;
+import org.wxc.myandroidtoolbox.ecg.draw.EcgDraw;
+import org.wxc.myandroidtoolbox.ecg.draw.IEcgDrawManager;
+import org.wxc.myandroidtoolbox.ecg.draw.IOnEcgDrawListener;
+import org.wxc.myandroidtoolbox.model.ModelParcelable;
+import org.wxc.myandroidtoolbox.pool.BinderPool;
 
-public class MainActivity extends AppCompatActivity
-        implements NavigationView.OnNavigationItemSelectedListener {
+import rx.Observable;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.functions.Action1;
+
+public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
+    private IModelManager modelManager;
+    private IEcgDrawManager ecgManager;
+
+    private EcgScanView ecgScanView;
+    private int i;
+
+    IOnNewModelListener.Stub onNewModelListener = new IOnNewModelListener.Stub() {
+        @Override
+        public void onNewModelAdded(Model newModel) throws RemoteException {
+            Log.i(TAG, "onNewModelAdded: newModel = " + newModel.toString());
+        }
+    };
+    private IOnEcgDrawListener.Stub onEcgDrawListener = new IOnEcgDrawListener.Stub() {
+        @Override
+        public void onEcgDraw(EcgDraw ecg) throws RemoteException {
+//            Log.i(TAG, "onEcgDraw: ecg = " + ecg.toString());
+            Observable.just(ecg.points)
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe(new Action1<int[]>() {
+                @Override
+                public void call(int[] ints) {
+                    ecgScanView.setDataArrayAndDraw(ints);
+                }
+            });
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
+        setContentView(R.layout.content_main);
+        ecgScanView = (EcgScanView) findViewById(R.id.ecgScanView);
+//        testModelParcelable();
+        new Thread(){
             @Override
-            public void onClick(View view) {
-//                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-//                        .setAction("Action", null).show();
+            public void run() {
+                BinderPool binderPool = BinderPool.getInstance(getApplicationContext());
+                IBinder modelBinder = binderPool.queryBinder(BinderPool.BINDER_MODEL);
 
-                startActivity(new Intent(getApplicationContext(), BleActivity.class));
+                modelManager = IModelManager.Stub.asInterface(modelBinder);
+                IBinder ecgBinder = binderPool.queryBinder(BinderPool.BINDER_ECG_DRAW);
+
+                ecgManager = IEcgDrawManager.Stub.asInterface(ecgBinder);
+                try {
+                    modelManager.registerListener(onNewModelListener);
+
+                    ecgManager.registerListener(onEcgDrawListener);
+                } catch (RemoteException e) {
+                    e.printStackTrace();
+                }
             }
-        });
+        }.start();
 
-        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
-        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
-                this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
-        drawer.setDrawerListener(toggle);
-        toggle.syncState();
+    }
 
-        NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
-        navigationView.setNavigationItemSelectedListener(this);
+    public void testBinderPool(View view) {
+        try {
+            ecgManager.startOrStop(true);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+    }
 
-        testModelParcelable();
+    private void testBinderPool() {
+       try {
+            modelManager.addModel(new Model(i++, "Test " + i));
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
     }
 
     private void testModelParcelable() {
@@ -61,59 +104,25 @@ public class MainActivity extends AppCompatActivity
     }
 
     @Override
-    public void onBackPressed() {
-        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
-        if (drawer.isDrawerOpen(GravityCompat.START)) {
-            drawer.closeDrawer(GravityCompat.START);
-        } else {
-            super.onBackPressed();
+    protected void onDestroy() {
+        if (modelManager != null && modelManager.asBinder().isBinderAlive()) {
+            Log.i(TAG, "unregister listener:" + onNewModelListener);
+            try {
+                modelManager.unregisterListener(onNewModelListener);
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
         }
-    }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.main, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
+        if (ecgManager != null && ecgManager.asBinder().isBinderAlive()) {
+            Log.i(TAG, "unregister listener:" + onEcgDrawListener);
+            try {
+                ecgManager.unregisterListener(onEcgDrawListener);
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
         }
 
-        return super.onOptionsItemSelected(item);
+        super.onDestroy();
     }
 
-    @SuppressWarnings("StatementWithEmptyBody")
-    @Override
-    public boolean onNavigationItemSelected(MenuItem item) {
-        // Handle navigation view item clicks here.
-        int id = item.getItemId();
-
-        if (id == R.id.nav_camera) {
-            // Handle the camera action
-        } else if (id == R.id.nav_gallery) {
-
-        } else if (id == R.id.nav_slideshow) {
-
-        } else if (id == R.id.nav_manage) {
-
-        } else if (id == R.id.nav_share) {
-
-        } else if (id == R.id.nav_send) {
-
-        }
-
-        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
-        drawer.closeDrawer(GravityCompat.START);
-        return true;
-    }
 }

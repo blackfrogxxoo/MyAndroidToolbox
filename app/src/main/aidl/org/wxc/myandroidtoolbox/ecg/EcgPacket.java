@@ -9,7 +9,7 @@ import org.wxc.myandroidtoolbox.utils.TypeUtil;
 /**
  * Created by black on 2016/6/24.
  */
-public class EcgPacket implements Parcelable{
+public class EcgPacket{
     private static EcgPacket sEcgPacket;
     /**
      * 4 bits，数据包类型
@@ -42,12 +42,6 @@ public class EcgPacket implements Parcelable{
         return super.toString() +",sequenceId:"+ getSequenceID();
     }
 
-    protected EcgPacket(Parcel in) {
-        in.readByteArray(mBytes);
-        this.mTotalLength = (byte) mBytes.length;
-        this.mPacketType = TypeUtil.subByte(mBytes[0], 4, 8);
-    }
-
     public short[] getECGmeasurements() {
         int length = mTotalLength/2 - 1;
         short[] measurements = new short[length];
@@ -58,42 +52,18 @@ public class EcgPacket implements Parcelable{
         return measurements;
     }
 
-
     public int getSequenceID() {
         return mBytes[mTotalLength-1];
     }
 
     public static EcgPacket fromBytes(byte[] ori) {
-//        if(sEcgPacket == null) {
-//            sEcgPacket = new EcgPacket(ori);
-//        } else {
-//            sEcgPacket.init(ori);
-//        }
-
-//        return sEcgPacket;
-
-        return new EcgPacket(ori);
-    }
-
-    public static final Creator<EcgPacket> CREATOR = new Creator<EcgPacket>() {
-        @Override
-        public EcgPacket createFromParcel(Parcel in) {
-            return new EcgPacket(in);
+        if(sEcgPacket == null) {
+            sEcgPacket = new EcgPacket(ori);
+        } else {
+            sEcgPacket.init(ori);
         }
 
-        @Override
-        public EcgPacket[] newArray(int size) {
-            return new EcgPacket[size];
-        }
-    };
+        return sEcgPacket;
 
-    @Override
-    public int describeContents() {
-        return 0;
-    }
-
-    @Override
-    public void writeToParcel(Parcel parcel, int i) {
-        parcel.writeByteArray(mBytes);
     }
 }

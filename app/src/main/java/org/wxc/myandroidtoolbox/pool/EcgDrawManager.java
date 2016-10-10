@@ -1,12 +1,7 @@
-package org.wxc.myandroidtoolbox.ble;
+package org.wxc.myandroidtoolbox.pool;
 
-import android.app.Service;
-import android.content.Intent;
-import android.os.Binder;
-import android.os.IBinder;
 import android.os.RemoteCallbackList;
 import android.os.RemoteException;
-import android.support.annotation.Nullable;
 import android.util.Log;
 
 import org.wxc.myandroidtoolbox.ecg.EcgPacket;
@@ -22,38 +17,18 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import rx.functions.Action1;
 
 /**
- * Created by wxc on 2016/10/3.
+ * Created by black on 2016/10/10.
  */
-public class BleManagerService extends Service{
-    private static final String TAG = "BleManagerService";
 
+public class EcgDrawManager extends IEcgDrawManager.Stub {
+    private static final String TAG = "EcgDrawManager";
+
+    private DeinterleaverCache mDeinterleaverCache;
+    private RemoteCallbackList<IOnEcgDrawListener> mEcgListenerlList = new RemoteCallbackList<>();
+    private org.wxc.myandroidtoolbox.ecg.cache.QueueDataHolder mQueueDataHolder;
     private AtomicBoolean mIsServiceDestroyed = new AtomicBoolean(false);
 
-    private RemoteCallbackList<IOnEcgDrawListener> mEcgListenerlList = new RemoteCallbackList<>();
-    private Binder mBinder = new IEcgDrawManager.Stub() {
-
-        @Override
-        public void receiveEcgDraw(EcgDraw ecg) throws RemoteException {
-
-        }
-
-        @Override
-        public void registerListener(IOnEcgDrawListener listener) throws RemoteException {
-            mEcgListenerlList.register(listener);
-        }
-
-        @Override
-        public void unregisterListener(IOnEcgDrawListener listener) throws RemoteException {
-            mEcgListenerlList.unregister(listener);
-        }
-    };
-    private DeinterleaverCache mDeinterleaverCache;
-    private QueueDataHolder mQueueDataHolder;
-
-    @Override
-    public void onCreate() {
-        super.onCreate();
-        new Thread(new ServiceWorker()).start();
+    public void init(){
         mDeinterleaverCache = new DeinterleaverCache(new DeinterleaverCache.CacheListener() {
             @Override
             public void onProcess(short[] processData) {
@@ -88,21 +63,9 @@ public class BleManagerService extends Service{
                 mEcgListenerlList.finishBroadcast();
             }
         });
+        new Thread(new ServiceWorker()).start();
     }
 
-    @Nullable
-    @Override
-    public IBinder onBind(Intent intent) {
-        return mBinder;
-    }
-
-    @Override
-    public void onDestroy() {
-        mQueueDataHolder.close();
-        mDeinterleaverCache.close();
-        mIsServiceDestroyed.set(true);
-        super.onDestroy();
-    }
 
     private void onNewEcgReceived(EcgPacket model) throws RemoteException {
         mDeinterleaverCache.setMeasurementsAndSequenceID(model.getECGmeasurements(), model.getSequenceID());
@@ -137,5 +100,30 @@ public class BleManagerService extends Service{
                 }
             }
         }
+    }
+
+    @Override
+    public void startOrStop(boolean start) throws RemoteException {
+        if(start) {
+            init();
+        } else {
+            close();
+        }
+    }
+
+    @Override
+    public void registerListener(IOnEcgDrawListener listener) throws RemoteException {
+        mEcgListenerlList.register(listener);
+    }
+
+    @Override
+    public void unregisterListener(IOnEcgDrawListener listener) throws RemoteException {
+        mEcgListenerlList.unregister(listener);
+    }
+
+    public void close(){
+        mIsServiceDestroyed.set(true);
+        mDeinterleaverCache.close();
+        mQueueDataHolder.close();
     }
 }

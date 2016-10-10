@@ -1,4 +1,4 @@
-package org.wxc.myandroidtoolbox.ipc;
+package org.wxc.myandroidtoolbox.model;
 
 import android.app.Service;
 import android.content.Intent;
