@@ -17,6 +17,10 @@ import android.view.View;
 import org.wxc.myandroidtoolbox.ble.BleActivity;
 import org.wxc.myandroidtoolbox.ipc.ModelParcelable;
 
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends AppCompatActivity
@@ -122,27 +126,68 @@ public class MainActivity extends AppCompatActivity
     public void testDaemonThread(View view) {
         // 事实证明，只是通过back退出app后，所谓的daemon线程仍然在运行
         // standard Java shutdown hooks are not guaranteed on this platform
-        startThread(true);
-        startThread(false);
+
+
+        // ****以下方式启动的线程，在某些手机上，在app切换到后台后，休眠时间变长
+//        startThread(false);
+//        startInnerTimer();
+//        startOutterTimer();
+        startExecutor();
+    }
+
+    private static class SleepRunnable extends TimerTask {
+
+        @Override
+        public void run() {
+            long lastMills = System.currentTimeMillis();
+            while (true) {
+                try {
+                    TimeUnit.MILLISECONDS.sleep(100);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                long now = System.currentTimeMillis();
+                long cost = now - lastMills;
+                lastMills = now;
+                Log.i(TAG, "run: " + Thread.currentThread().getName() + " cost:" + cost + " ms");
+            }
+        }
     }
 
     private void startThread(boolean isDaemon) {
         String name = isDaemon ? "Test daemon" : "Test not daemon";
-        Thread thead = new Thread(name){
-            @Override
-            public void run() {
-                while (true) {
-                    try {
-                        TimeUnit.MILLISECONDS.sleep(1000);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                    Log.i(TAG, "run: " + this);
-                }
-            }
-        };
+        Thread thead = new Thread(new SleepRunnable(), name);
 
         thead.setDaemon(isDaemon);
         thead.start();
+    }
+
+    private void startInnerTimer() {
+        Timer timer = new Timer("Test Inner Timer");
+        TimerTask task = new SleepRunnable();
+        timer.schedule(task,0);
+    }
+
+    private long lastMills;
+    private void startOutterTimer() {
+        Timer timer = new Timer("Test Outter Timer");
+        lastMills = System.currentTimeMillis();
+        TimerTask task = new TimerTask(){
+            @Override
+            public void run() {
+                long now = System.currentTimeMillis();
+                long cost = now - lastMills;
+                lastMills = now;
+                Log.i(TAG, "run: " + Thread.currentThread().getName() + " cost:" + cost + " ms");
+            }
+        };
+
+        timer.schedule(task, 0, 100);
+    }
+
+    private void startExecutor() {
+        ExecutorService exec = Executors.newCachedThreadPool();
+        exec.execute(new SleepRunnable());
+        exec.shutdown();
     }
 }
