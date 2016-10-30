@@ -17,6 +17,8 @@ import android.view.View;
 import org.wxc.myandroidtoolbox.ble.BleActivity;
 import org.wxc.myandroidtoolbox.ipc.ModelParcelable;
 
+import java.util.concurrent.TimeUnit;
+
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
     private static final String TAG = "MainActivity";
@@ -115,5 +117,32 @@ public class MainActivity extends AppCompatActivity
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
         return true;
+    }
+
+    public void testDaemonThread(View view) {
+        // 事实证明，只是通过back退出app后，所谓的daemon线程仍然在运行
+        // standard Java shutdown hooks are not guaranteed on this platform
+        startThread(true);
+        startThread(false);
+    }
+
+    private void startThread(boolean isDaemon) {
+        String name = isDaemon ? "Test daemon" : "Test not daemon";
+        Thread thead = new Thread(name){
+            @Override
+            public void run() {
+                while (true) {
+                    try {
+                        TimeUnit.MILLISECONDS.sleep(1000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    Log.i(TAG, "run: " + this);
+                }
+            }
+        };
+
+        thead.setDaemon(isDaemon);
+        thead.start();
     }
 }
