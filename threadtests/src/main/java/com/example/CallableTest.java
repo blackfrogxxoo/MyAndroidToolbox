@@ -27,6 +27,11 @@ public class CallableTest {
     }
 
     public static void main(String[] args) {
+//        baseCallable();
+        fibonacciCallable();
+    }
+
+    private static void baseCallable() {
         ExecutorService executorService = Executors.newCachedThreadPool();
         ArrayList<Future<String>> results = new ArrayList<>();
         for(int i=0; i<10; i++) {
@@ -43,6 +48,22 @@ public class CallableTest {
             } finally {
                 executorService.shutdown();
             }
+        }
+    }
+
+    private static void fibonacciCallable() {
+        long start = System.currentTimeMillis();
+        ExecutorService executorService = Executors.newCachedThreadPool();
+        Future<Long> future = executorService.submit(new FibonacciCallable(48));
+        try {
+            System.out.println(future.get().longValue());
+            System.out.println("cost:" + (System.currentTimeMillis() - start));
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        } finally {
+            executorService.shutdown();
         }
     }
 }
