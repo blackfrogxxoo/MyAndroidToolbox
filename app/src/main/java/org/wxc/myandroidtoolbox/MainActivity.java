@@ -21,7 +21,12 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
@@ -132,7 +137,11 @@ public class MainActivity extends AppCompatActivity
 //        startThread(false);
 //        startInnerTimer();
 //        startOutterTimer();
-        startExecutor();
+//        startExecutor();
+//        startScheduleWithFixedDelay();
+
+        // ****以下方式启动的线程，在某些手机上，在app切换到后台后，休眠时间总体上未变长，但不太稳定
+        startScheduleAtFixedRate();
     }
 
     private static class SleepRunnable extends TimerTask {
@@ -154,6 +163,19 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
+    private static long lastMills;
+    private static class SleepOnceRunnable implements Runnable {
+
+        @Override
+        public void run() {
+            long now = System.currentTimeMillis();
+            long cost = now - lastMills;
+            lastMills = now;
+            Log.i(TAG, "run: " + Thread.currentThread().getName() + " cost:" + cost + " ms");
+
+        }
+    }
+
     private void startThread(boolean isDaemon) {
         String name = isDaemon ? "Test daemon" : "Test not daemon";
         Thread thead = new Thread(new SleepRunnable(), name);
@@ -168,7 +190,6 @@ public class MainActivity extends AppCompatActivity
         timer.schedule(task,0);
     }
 
-    private long lastMills;
     private void startOutterTimer() {
         Timer timer = new Timer("Test Outter Timer");
         lastMills = System.currentTimeMillis();
@@ -190,4 +211,35 @@ public class MainActivity extends AppCompatActivity
         exec.execute(new SleepRunnable());
         exec.shutdown();
     }
+
+    private void startScheduleAtFixedRate() {
+
+        final ScheduledExecutorService scheduler = Executors
+                .newScheduledThreadPool(2);
+        // 1秒钟后运行，并每隔2秒运行一次
+        final ScheduledFuture beeperHandle = scheduler.scheduleAtFixedRate(
+                new SleepOnceRunnable(), 0, 100, MILLISECONDS);
+        scheduler.schedule(new Runnable() {
+            public void run() {
+                beeperHandle.cancel(true);
+                scheduler.shutdown();
+            }
+        }, 30, SECONDS);
+    }
+
+    private void startScheduleWithFixedDelay() {
+
+        final ScheduledExecutorService scheduler = Executors
+                .newScheduledThreadPool(2);
+        final ScheduledFuture beeperHandle2 = scheduler
+                .scheduleWithFixedDelay(new SleepOnceRunnable(), 0, 100, MILLISECONDS);
+        // 30秒后结束关闭任务，并且关闭Scheduler
+        scheduler.schedule(new Runnable() {
+            public void run() {
+                beeperHandle2.cancel(true);
+                scheduler.shutdown();
+            }
+        }, 30, SECONDS);
+    }
+
 }
