@@ -3,7 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="org.wxc.myandroidtoolbox.ble.BleActivity">
+    tools:context="org.wxc.myandroidtoolbox.ecg.EcgDrawActivity">
 
     <org.wxc.myandroidtoolbox.ecg.cache.EcgScanView
         android:id="@+id/ecgScanView"

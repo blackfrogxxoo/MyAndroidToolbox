@@ -1,4 +1,4 @@
-package org.wxc.myandroidtoolbox.ble;
+package org.wxc.myandroidtoolbox.ecg;
 
 import android.content.ComponentName;
 import android.content.Context;
@@ -18,8 +18,8 @@ import org.wxc.myandroidtoolbox.ecg.draw.EcgDraw;
 import org.wxc.myandroidtoolbox.ecg.draw.IEcgDrawManager;
 import org.wxc.myandroidtoolbox.ecg.draw.IOnEcgDrawListener;
 
-public class BleActivity extends AppCompatActivity {
-    private static final String TAG = "BleActivity";
+public class EcgDrawActivity extends AppCompatActivity {
+    private static final String TAG = "EcgDrawActivity";
     private static final int MSG_NEW_MODEL_ADDED = 1;
 
     private android.os.Handler mHandler = new Handler(){
@@ -68,7 +68,7 @@ public class BleActivity extends AppCompatActivity {
         setContentView(R.layout.activity_ble);
 
         mEcgScanView = (EcgScanView) findViewById(R.id.ecgScanView);
-        Intent intent = new Intent(this, BleManagerService.class);
+        Intent intent = new Intent(this, EcgDrawManagerService.class);
         bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
     }
 

@@ -1,8 +1,6 @@
-package org.wxc.myandroidtoolbox.ble;
+package org.wxc.myandroidtoolbox.ecg;
 
 import org.junit.Test;
-import org.wxc.myandroidtoolbox.ecg.EcgPacket;
-import org.wxc.myandroidtoolbox.ecg.PacketFactory;
 import org.wxc.myandroidtoolbox.utils.TypeUtil;
 
 import java.util.Arrays;

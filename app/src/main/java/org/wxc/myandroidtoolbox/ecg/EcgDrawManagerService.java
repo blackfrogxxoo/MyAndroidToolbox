@@ -1,4 +1,4 @@
-package org.wxc.myandroidtoolbox.ble;
+package org.wxc.myandroidtoolbox.ecg;
 
 import android.app.Service;
 import android.content.Intent;
@@ -9,8 +9,6 @@ import android.os.RemoteException;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
-import org.wxc.myandroidtoolbox.ecg.EcgPacket;
-import org.wxc.myandroidtoolbox.ecg.PacketFactory;
 import org.wxc.myandroidtoolbox.ecg.cache.DeinterleaverCache;
 import org.wxc.myandroidtoolbox.ecg.cache.QueueDataHolder;
 import org.wxc.myandroidtoolbox.ecg.draw.EcgDraw;
@@ -24,8 +22,8 @@ import rx.functions.Action1;
 /**
  * Created by wxc on 2016/10/3.
  */
-public class BleManagerService extends Service{
-    private static final String TAG = "BleManagerService";
+public class EcgDrawManagerService extends Service{
+    private static final String TAG = "EcgDrawManagerService";
 
     private AtomicBoolean mIsServiceDestroyed = new AtomicBoolean(false);
 
@@ -33,8 +31,12 @@ public class BleManagerService extends Service{
     private Binder mBinder = new IEcgDrawManager.Stub() {
 
         @Override
-        public void receiveEcgDraw(EcgDraw ecg) throws RemoteException {
-
+        public void setRunning(boolean start) throws RemoteException {
+            if(start) {
+                new Thread(new ServiceWorker()).start();
+            } else {
+                mIsServiceDestroyed.set(true);
+            }
         }
 
         @Override
@@ -53,7 +55,6 @@ public class BleManagerService extends Service{
     @Override
     public void onCreate() {
         super.onCreate();
-        new Thread(new ServiceWorker()).start();
         mDeinterleaverCache = new DeinterleaverCache(new DeinterleaverCache.CacheListener() {
             @Override
             public void onProcess(short[] processData) {
