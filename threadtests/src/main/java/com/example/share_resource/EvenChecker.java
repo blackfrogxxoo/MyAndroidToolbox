@@ -37,6 +37,6 @@ public class EvenChecker implements Runnable {
 
     // Default value for count:
     public static void test(IntGenerator gp) {
-        test(gp, 100);
+        test(gp, 10);
     }
 }
