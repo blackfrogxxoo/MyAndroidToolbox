@@ -54,7 +54,7 @@ public class DifferentSingleton {
 
     static class FixedSynchronizedLanHan {
         // 延迟加载方式 == 懒汉模式
-        private static FixedSynchronizedLanHan instance;
+        private volatile static FixedSynchronizedLanHan instance;
         private FixedSynchronizedLanHan(){}
         public static FixedSynchronizedLanHan getInstace() {
             try {
