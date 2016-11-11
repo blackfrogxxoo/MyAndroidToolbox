@@ -1,1 +1,1 @@
-include ':app', ':threadtests', ':cache'
+include ':app', ':threadtests', ':cache', ':rx'
