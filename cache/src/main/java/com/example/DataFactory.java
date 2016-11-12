@@ -56,4 +56,18 @@ public class DataFactory {
         }
         return result;
     }
+    static Packet getEcgPacket(int sequenceId) {
+        short[] result = new short[9];
+        for(int i=0; i<9; i++) {
+            result[i] = data[32*i + sequenceId];
+        }
+        Packet packet = new Packet();
+        packet.data = result;
+        packet.sequenceID = sequenceId;
+        return packet;
+    }
+    static class Packet {
+        int sequenceID;
+        short[] data;
+    }
 }

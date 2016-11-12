@@ -1,6 +1,5 @@
 package com.example;
 
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -21,14 +20,11 @@ public class FakeBytesGenerator {
         isRunning = true;
         final ScheduledExecutorService exec = Executors.newScheduledThreadPool(4);
         // 模拟Binder线程池
-        exec.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                if(!isRunning) {
-                    exec.shutdown();
-                }
-                listener.onBytes(new byte[]{0x01});
+        exec.scheduleAtFixedRate(() -> {
+            if(!isRunning) {
+                exec.shutdown();
             }
+            listener.onBytes(new byte[]{0x01});
         }, 0, 20, TimeUnit.MILLISECONDS);
     }
 

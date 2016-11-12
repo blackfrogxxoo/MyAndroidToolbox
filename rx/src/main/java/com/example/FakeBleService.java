@@ -1,13 +1,16 @@
 package com.example;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import rx.Observable;
 import rx.Scheduler;
-import rx.functions.Action0;
+import rx.Subscription;
 import rx.functions.Action1;
-import rx.functions.Func1;
 import rx.schedulers.Schedulers;
 
 public class FakeBleService {
@@ -22,79 +25,88 @@ public class FakeBleService {
     static short[] INFO_SHORTS = new short[]{1,2,3,4,5,6,7,8,9};
 
     static Scheduler fakeUiScheduler = Schedulers.from(Executors.newSingleThreadExecutor());
+    static Scheduler oriFileScheduler = Schedulers.from(Executors.newSingleThreadExecutor());
+    static Scheduler ecgFileScheduler = Schedulers.from(Executors.newSingleThreadExecutor());
+    static Scheduler getPacketScheduler = Schedulers.from(Executors.newSingleThreadExecutor());
+    static Scheduler cacheScheduler = Schedulers.from(Executors.newSingleThreadExecutor());
 
+    static DeinterleaverCache deinterleaverCache = new DeinterleaverCache();
+
+    private static final String ORI_PATH = "ori.txt";
+    private static final String ECG_PATH = "ecg.txt";
+    private static List<Subscription> subscriptions = new ArrayList<>();
     static FakeBytesGenerator.Listener listener = new FakeBytesGenerator.Listener() {
-        int i=0;
-
+        int sequenceId = -1;
         @Override
         public void onBytes(byte[] bytes) {
-            getBytesObservable(bytes)
+            Subscription subscription = getBytesObservable(bytes)
+                    .doOnSubscribe(() -> {})
                     .subscribeOn(Schedulers.immediate())
-                    .doOnSubscribe(new Action0() { // 准备工作
-                        @Override
-                        public void call() {
-                            System.out.println("准备工作:" + Thread.currentThread().getName());
-                            try {
-                                TimeUnit.SECONDS.sleep(5);
-                            } catch (InterruptedException e) {
-                                e.printStackTrace();
+                    .observeOn(getPacketScheduler)
+                    .map(bytes1 -> {
+                        sequenceId++;
+                        if (sequenceId == 32) {
+                            sequenceId = 0;
+                        }
+                        int id = sequenceId;
+                        return DataFactory.getEcgPacket(id);
+                    })
+                    .observeOn(oriFileScheduler)
+                    .doOnNext(packet -> {
+                        int id = packet.sequenceID;
+                        short[] shorts = packet.data;
+                        StringBuilder sb = new StringBuilder();
+                        int i = 0;
+                        for (short item : shorts) {
+                            sb.append(item);
+                            if (i < shorts.length - 1) {
+                                sb.append(',');
+                            } else {
+                                sb.append(',');
+                                sb.append(id);
+                                sb.append('\n');
                             }
+                            i++;
+                        }
+                        try {
+                            OriFileUtil.getInstance(ORI_PATH).store(sb.toString());
+                        } catch (IOException e) {
+                            e.printStackTrace();
                         }
                     })
-                    .subscribeOn(Schedulers.io())
-                    .map(new Func1<byte[], short[]>() {
-                        @Override
-                        public short[] call(byte[] bytes) {
-                            i ++;
-                            if(i % 10 == 0) {
-                                return ECG_SHORTS;
-                            }
-                            return null;
-                        }
+                    .filter(shorts -> shorts != null)
+                    .observeOn(cacheScheduler)
+                    .doOnNext(packet -> {
+                        System.out.println(Arrays.toString(packet.data));
+                        System.out.println(packet.sequenceID);
                     })
-                    .filter(new Func1<short[], Boolean>() {
-                        @Override
-                        public Boolean call(short[] shorts) {
-                            if(shorts != null) {
-                                return true;
-                            }
-                            return false;
-                        }
+                    .map(packet -> deinterleaverCache.setMeasurementsAndSequenceID(packet.data, packet.sequenceID))
+                    .filter(shorts -> shorts != null)
+                    .observeOn(fakeUiScheduler)
+                    .doOnNext(shorts -> {
+                        System.out.println(shorts.length);
                     })
-                    .observeOn(Schedulers.io())
-                    .map(new Func1<short[], short[]>() {
-                        @Override
-                        public short[] call(short[] shorts) {
-                            if(Math.random() < 0.1) {
-                                return PROCESSED_ECG_SHORTS;
-                            }
-                            return null;
+                    .observeOn(ecgFileScheduler)
+                    .doOnNext(shorts -> {
+                        StringBuilder sb = new StringBuilder();
+                        for (short item : shorts) {
+                            sb.append(item);
+                            sb.append('\n');
                         }
-                    })
-                    .filter(new Func1<short[], Boolean>() {
-                        @Override
-                        public Boolean call(short[] shorts) {
-                            if(shorts != null) {
-                                return true;
-                            }
-                            return false;
+                        try {
+                            EcgFileUtil.getInstance(ECG_PATH).store(sb.toString());
+                        } catch (IOException e) {
+                            e.printStackTrace();
                         }
                     })
                     .observeOn(fakeUiScheduler)
-                    .doOnNext(new Action1<short[]>() {
-                        @Override
-                        public void call(short[] shorts) {
-                            System.out.println(shorts.length);
-                            System.out.println("Current Thread:" + Thread.currentThread().getName());
-                        }
-                    })
-                    .observeOn(Schedulers.io())
-                    .subscribe(new Action1<short[]>() {
-                        @Override
-                        public void call(short[] shorts) {
-                            System.out.println("Current Thread:" + Thread.currentThread().getName());
-                        }
+                    .subscribe(shorts -> {
+                        System.out.println("Success");
+                    }, throwable -> {
+                        System.out.println(throwable.getMessage());
+                        System.out.println("Failed");
                     });
+            subscriptions.add(subscription);
         }
     };
 
@@ -110,17 +122,47 @@ public class FakeBleService {
         return Observable.just(bytes);
     }
 
-    public static void main(String[] args) {
-        long time = System.currentTimeMillis();
-        connectBle(true);
+    public static void main(String[] args) throws IOException {
+        Observable.just(0).observeOn(fakeUiScheduler).subscribe(new Action1<Integer>() {
+            @Override
+            public void call(Integer integer) {
 
-        try {
-            TimeUnit.SECONDS.sleep(20);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+                try {
+                    OriFileUtil.close();
+                    EcgFileUtil.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
 
-        connectBle(false);
-        System.out.println("Cost: " + (System.currentTimeMillis() - time)/1000 + "s");
+                long time = System.currentTimeMillis();
+                connectBle(true);
+
+                try {
+                    TimeUnit.SECONDS.sleep(20);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
+                connectBle(false);
+                for (Subscription subscription : subscriptions) {
+                    if (subscription != null && !subscription.isUnsubscribed()) {
+                        subscription.unsubscribe();
+                    }
+                }
+                subscriptions.clear();
+                System.out.println("Cost: " + (System.currentTimeMillis() - time) / 1000 + "s");
+                try {
+                    OriFileUtil.close();
+                    EcgFileUtil.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }, new Action1<Throwable>() {
+            @Override
+            public void call(Throwable throwable) {
+                System.out.println(throwable.getMessage());
+            }
+        });
     }
 }
