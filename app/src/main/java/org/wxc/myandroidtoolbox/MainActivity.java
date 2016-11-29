@@ -1,21 +1,12 @@
 package org.wxc.myandroidtoolbox;
 
-import android.content.Intent;
+import android.media.MediaPlayer;
 import android.os.Bundle;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.NavigationView;
-import android.support.v4.view.GravityCompat;
-import android.support.v4.widget.DrawerLayout;
-import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
 import android.util.Log;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
 
-import org.wxc.myandroidtoolbox.ble.BleActivity;
-import org.wxc.myandroidtoolbox.ipc.ModelParcelable;
+import org.wxc.myandroidtoolbox.model.ModelParcelable;
 
 import java.util.Timer;
 import java.util.TimerTask;
@@ -28,38 +19,169 @@ import java.util.concurrent.TimeUnit;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
-public class MainActivity extends AppCompatActivity
-        implements NavigationView.OnNavigationItemSelectedListener {
+public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
+    MediaPlayer s1Player;
+    MediaPlayer s2Player;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
+        setContentView(R.layout.content_main);
 
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
+        s1Player = MediaPlayer.create(this, R.raw.high_prio);
+        s2Player = MediaPlayer.create(this, R.raw.mid_prio);
+        testModelParcelable();
+        s1Player.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
             @Override
-            public void onClick(View view) {
-//                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-//                        .setAction("Action", null).show();
+            public void onCompletion(MediaPlayer mp) {
+                new Thread("s1Player"){
+                    @Override
+                    public void run() {
+                        if(readyToPauseS1) {
+                            readyToPauseS1 = false;
+                            return;
+                        }
+                        s1Waiting = true;
+                        for(int i=0;i<3;i++) {
+                            try {
+                                TimeUnit.SECONDS.sleep(1);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                            if(readyToPauseS1) {
+                                s1Waiting = false;
+                                readyToPauseS1 = false;
+                                return;
+                            }
+                        }
 
-                startActivity(new Intent(getApplicationContext(), BleActivity.class));
+                        if(MainActivity.this.isFinishing() || !s1Waiting) {
+                            return;
+                        }
+                        s1Waiting = false;
+                        s1Player.start();
+                    }
+                }.start();
             }
         });
+        s2Player.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+            @Override
+            public void onCompletion(MediaPlayer mp) {
+                new Thread("s2Player"){
+                    @Override
+                    public void run() {
+                        if(readyToPauseS2) {
+                            readyToPauseS2 = false;
+                            return;
+                        }
+                        s2Waiting = true;
+                        for(int i=0;i<6;i++) {
+                            try {
+                                TimeUnit.SECONDS.sleep(1);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                            if(readyToPauseS2) {
+                                s2Waiting = false;
+                                readyToPauseS2 = false;
+                                return;
+                            }
+                        }
 
-        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
-        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
-                this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
-        drawer.setDrawerListener(toggle);
-        toggle.syncState();
+                        if(MainActivity.this.isFinishing() || !s2Waiting) {
+                            return;
+                        }
+                        s2Waiting = false;
 
-        NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
-        navigationView.setNavigationItemSelectedListener(this);
+                        s2Player.start();
+                    }
+                }.start();
+            }
+        });
+    }
 
-        testModelParcelable();
+    private boolean readyToPauseS1;
+    private boolean readyToPauseS2;
+    private boolean s1Waiting;
+    private boolean s2Waiting;
+    private boolean isInCalling;
+
+    public void repeatS1(View view) {
+        if(isInCalling) {
+            return;
+        }
+        if(s1Waiting || s1Player.isPlaying()) {
+            return;
+        }
+
+        if(s2Waiting || s2Player.isPlaying()) {
+            s2Waiting = false;
+            if(s2Player.isPlaying()) {
+                s2Player.seekTo(0);
+                s2Player.pause();
+            }
+        }
+        s1Player.start();
+    }
+
+    public void repeatS2(View view) {
+        if(isInCalling) {
+            return;
+        }
+        if(s2Waiting || s2Player.isPlaying()) {
+            return;
+        }
+
+        if(s1Waiting || s1Player.isPlaying()) {
+            s1Waiting = false;
+            if(s1Player.isPlaying()) {
+                s1Player.seekTo(0);
+                s1Player.pause();
+            }
+        }
+        s2Player.start();
+    }
+
+    public void stopAlarm(View view) {
+        if(isInCalling) {
+            return;
+        }
+        preparePause();
+    }
+
+    private void preparePause() {
+        if(s1Waiting || s1Player.isPlaying()) {
+            readyToPauseS1 = true;
+        }
+        if (s2Waiting || s2Player.isPlaying()) {
+            readyToPauseS2 = true;
+        }
+    }
+
+    public void inCall(View view) {
+        offCall(view);
+        repeatS1(view);
+        isInCalling = true;
+    }
+
+    public void offCall(View view) {
+        totallyPause();
+        isInCalling = false;
+    }
+
+    private void totallyPause() {
+        preparePause();
+        s1Waiting = false;
+        if(s1Player.isPlaying()) {
+            s1Player.seekTo(0);
+            s1Player.pause();
+        }
+        s2Waiting = false;
+        if(s2Player.isPlaying()) {
+            s2Player.seekTo(0);
+            s2Player.pause();
+        }
     }
 
     private void testModelParcelable() {
@@ -69,63 +191,6 @@ public class MainActivity extends AppCompatActivity
 
         ModelParcelable newModel = bundle.getParcelable("model");
         Log.i(TAG, "testModelParcelable: " + newModel);
-    }
-
-    @Override
-    public void onBackPressed() {
-        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
-        if (drawer.isDrawerOpen(GravityCompat.START)) {
-            drawer.closeDrawer(GravityCompat.START);
-        } else {
-            super.onBackPressed();
-        }
-    }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.main, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
-        }
-
-        return super.onOptionsItemSelected(item);
-    }
-
-    @SuppressWarnings("StatementWithEmptyBody")
-    @Override
-    public boolean onNavigationItemSelected(MenuItem item) {
-        // Handle navigation view item clicks here.
-        int id = item.getItemId();
-
-        if (id == R.id.nav_camera) {
-            // Handle the camera action
-        } else if (id == R.id.nav_gallery) {
-
-        } else if (id == R.id.nav_slideshow) {
-
-        } else if (id == R.id.nav_manage) {
-
-        } else if (id == R.id.nav_share) {
-
-        } else if (id == R.id.nav_send) {
-
-        }
-
-        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
-        drawer.closeDrawer(GravityCompat.START);
-        return true;
     }
 
     public void testDaemonThread(View view) {
